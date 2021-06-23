@@ -1,0 +1,329 @@
+slug: k10-testdrive
+id: 7kg1ohhfphqo
+type: track
+title: Kasten K10 Testdrive
+teaser: Learn how Kubernetes-native application backup and recovery works.
+description: |-
+  Welcome to the live testdrive of K10, Kasten's data management platform for all your Kubernetes-native backup, DR, and application mobility needs.
+
+  If you have any questions, please do not hesitate to reach out at info@kasten.io, on our support Slack, or on Twitter.
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags:
+- Kubernetes
+- Backup
+- Disaster Recovery
+owner: kasten
+developers:
+- ntolia@kasten.io
+- travis@kasten.io
+private: false
+published: true
+challenges:
+- slug: add-k10-helm-repo
+  id: cdkxtugu29h0
+  type: challenge
+  title: Add the Kasten Helm 10 repository
+  teaser: Add the K10 Helm repository
+  notes:
+  - type: text
+    contents: |-
+      We are setting up VMs, Kubernetes 1.18, and storage infrastructure for you.
+
+      Please be patient as this might take a couple of minutes.
+
+      If you run into any issues with setup, please contact support@kasten.io!
+  assignment: |-
+    Let's start setting our environment up by adding the the Kasten K10 Helm repository to the system:
+
+    ```console
+    helm repo add kasten https://charts.kasten.io/
+    ```
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  difficulty: basic
+  timelimit: 120
+- slug: install-mysql
+  id: vpowhxhcwq8y
+  type: challenge
+  title: Install MySQL and Create a Demo Database
+  teaser: Install MySQL
+  notes:
+  - type: text
+    contents: As a next step, we will go ahead and install MySQL to use as a test
+      application.
+  assignment: |
+    To experiment with backup and recovery of a cloud-native application, we will install MySQL and create a database in this step.
+
+    First, install MySQL using the following commands:
+
+    ```console
+    kubectl create namespace mysql
+    helm install mysql bitnami/mysql --namespace=mysql
+    ```
+
+    To ensure that MySQL is running, check the pod status to make sure they are all in the `Running` state:
+
+    ```console
+    watch -n 2 "kubectl -n mysql get pods"
+    ```
+
+    Once all pods have a `Running` status, hit `CTRL + C` to exit watch and then run the following commands to create a local database.
+
+    ```console
+    MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace mysql mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+
+    kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') \
+      -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "CREATE DATABASE k10demo"
+    ```
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  difficulty: basic
+  timelimit: 300
+- slug: install-k10
+  id: 60ylbb2mio2u
+  type: challenge
+  title: Install K10 and Configure Storage
+  teaser: Install K10 and Configure Storage
+  assignment: |-
+    # Install Kasten K10
+    In this step, we will actually install K10 by running the following commands:
+
+    ```console
+    kubectl create namespace kasten-io; \
+      helm install k10 kasten/k10 --namespace=kasten-io
+    ```
+
+    To ensure that Kasten K10 is running, check the pod status to make sure they are all in the `Running` state:
+
+    ```console
+    watch -n 2 "kubectl -n kasten-io get pods"
+    ```
+
+    Once all pods have a Running status, hit `CTRL + C` to exit `watch`.
+
+    # Configure the Local Storage System
+
+    Once K10 is running, use the following commands to configure the local storage system.
+
+    ```console
+    kubectl annotate volumesnapshotclass csi-hostpath-snapclass k10.kasten.io/is-snapshot-class=true
+    ```
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  difficulty: basic
+  timelimit: 500
+- slug: view-k10-dashboard
+  id: jummfvfw5nfa
+  type: challenge
+  title: View K10 Dashboard
+  teaser: View the K10 Dashboard
+  assignment: |-
+    # Expose the K10 dashboard
+
+    While not recommended for production environments, let's set up access to the K10 dashboard by creating a NodePort. Let's first create the configuration file for this:
+
+    ```console
+    cat > k10-nodeport-svc.yaml << EOF
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: gateway-nodeport
+      namespace: kasten-io
+    spec:
+      selector:
+        service: gateway
+      ports:
+      - name: http
+        port: 8000
+        nodePort: 32000
+      type: NodePort
+    EOF
+    ```
+
+    Now, let's create the actual NodePort Service
+
+    ```console
+    kubectl apply -f k10-nodeport-svc.yaml
+    ```
+    # View the K10 Dashboard
+
+    Once completed, you should be able to view the K10 dashboard in the other tab on the left. We recommend taking the K10 dashboard tour at this point.
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  - title: K10 Dashboard
+    type: service
+    hostname: k8svm
+    path: /k10/#
+    port: 32000
+  difficulty: basic
+  timelimit: 500
+- slug: manual-snapshot
+  id: x1vyy1rcwvgb
+  type: challenge
+  title: Manual Snapshot
+  teaser: Perform a manual snapshot and clone operation in just a couple of minutes.
+  assignment: "For this portion of the test drive, we will execute a manual snapshot
+    of the MySQL application and then clone it. Policy-based operations will come
+    later.\n\n# Creating a Manual MySQL Snapshot\n\nFrom the dashboard on the left,
+    click on the `Applications` card. You will see the MySQL instance you had created.
+    Click on `Snapshot` and then click `Snapshot Application`. (Don't worry, we will
+    perform a true backup later)\n\nGo back to the main dashboard page and view activity.
+    The snapshot should complete in a couple of minutes. Click on the completed job
+    to view artifact information generated by the snapshot action in the side panel.\n\n#
+    Cloning MySQL\n\nTo create a MySQL clone, click again on the `Applications` card
+    and select `Restore` for the MySQL application. \n\nSelect the restore point that
+    was just created and, in the side panel that shows up, click on `Create a New
+    namespace` and use `mysql-clone` as the Application name, click `Restore` at the
+    bottom of the screen, and then confirm the action.\n\nGo back to the dashboard
+    to view the clone/restore in progress.\n\n# Verifying a Successful Clone\n\nOnce
+    the clone is complete, verify that the original demo database created earlier
+    (`k10demo`) is also present in the clone.\n\n```console\nMYSQL_ROOT_PASSWORD=$(kubectl
+    get secret --namespace mysql-clone mysql -o jsonpath=\"{.data.mysql-root-password}\"
+    | base64 --decode; echo)\nkubectl exec -it --namespace=mysql-clone $(kubectl --namespace=mysql-clone
+    get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD
+    -e \"SHOW DATABASES\"\n```\n\nYou can also add or delete data in this cloned MySQL
+    database (make sure you use the cloned instance) and verify that it doesn't impact
+    the primary copy running in the `mysql` namespace.\n"
+  tabs:
+  - title: K10 Dashboard
+    type: service
+    hostname: k8svm
+    path: /k10/#
+    port: 32000
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  difficulty: basic
+  timelimit: 500
+- slug: configure-object-storage
+  id: uukwjx9nfmbv
+  type: challenge
+  title: Configuring an Object Storage Backup Location
+  teaser: Configure an S3-compatible object storage location for backup data
+  notes:
+  - type: text
+    contents: We are setting up an object storage system (MinIO) for application backups.
+      Please give us a minute.
+  assignment: |-
+    We are going to create an automated policy to protect MySQL via backups next but, before we can do that, an object storage location needs to be configured for backup data storage.
+
+    # Creating a Location Profile
+
+    For this test drive, we have configured a local S3-compatible object storage system using MinIO. This needs to be added to K10 via a `Location Profile`.
+
+    To create a Location profile, click on Settings on the top-right corner of the K10 dashboard and then click `New Profile` under `Location Profiles`.
+
+    Pick a name for this profile, select `S3 Compatible` and then enter the following information:
+
+    * S3 Access Key: AKIAIOSFODNN7EXAMPLE
+    * S3 Secret: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+    * Endpoint: `http://minio.minio.svc.cluster.local:9000` (note the http, not https)
+    * Region: (Leave Blank)
+    * Bucket: k10-bucket
+
+    Click on `Validate and Save` to create this profile. We will use this location in the next step.
+  tabs:
+  - title: K10 Dashboard
+    type: service
+    hostname: k8svm
+    path: /k10/#
+    port: 32000
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  difficulty: basic
+  timelimit: 400
+- slug: k10-policy-creation
+  id: bvhyny0fpqzc
+  type: challenge
+  title: Backup Policy Creation
+  teaser: Create an automated policy for application backup
+  assignment: |
+    We will now create a policy to backup MySQL to the previously configured object storage location.
+
+    # Creating a Policy
+
+    From the main K10 dashbboard, click on the Policies card. There should be no policies visible at this point.
+
+    Click `Create New Policy` and:
+
+    * Give the policy a name (e.g., `backup-mysql)
+    * Select `Snapshot` for the `Action`
+    * Select `Hourly` for the `Action Frequency`
+    * Leave the `Snapshot Retention` selection as-is
+    * Turn on `Enable Backups via Snapshot Exports` and select the Location Profile that was created in the previous step
+    * Select `By Name` for `Select Applications` and then, from the dropdown, select `mysql`
+    * Leave all other settings as-is and select `Create Policy`
+
+    # Running the Policy
+
+    The above policy will only run at the scheduled time (by default, at the top of the hour). To run the policy manually for the first time, click on `Run Once` on the Policies page. Confirm by clicking `Run Policy` and then go back to the main dashboard to view the job in action. Verify that the job has successfully completed.
+  tabs:
+  - title: K10 Dashboard
+    type: service
+    hostname: k8svm
+    path: /k10/#
+    port: 32000
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  difficulty: basic
+  timelimit: 500
+- slug: k10-backup-restore
+  id: efynety4y1l4
+  type: challenge
+  title: Restore from Backup
+  teaser: Recovery from accidental data loss
+  assignment: |
+    Now that we have a MySQL backup, let's go simulate accidental data loss and then recover the system from that loss.
+
+    # Causing Data Loss
+
+    For the purposes of this test drive, we will simply drop the `k10demo` database we had created earlier.
+
+    ```console
+    MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace mysql mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+    kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "DROP DATABASE k10demo"
+    ```
+
+    Verify that the database has been deleted by running:
+    ```console
+    kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "SHOW DATABASES LIKE 'k10demo'"
+    ```
+
+    # Recovering Data
+
+    To recover MySQL, go to the K10 dashboard, click `Applications`, and then select `Restore` on the `MySQL` card.
+
+    Click on a recent restore point and then select the `Exported` restore point (this is stored in the object storage system instead of as a non-durable snapshot on the storage system). In this case, we will select the default `Application Name` option to restore in place (`Restore as "mysql"`). Leave all other selections as-is, click on `Restore`, and confirm the action.
+
+    Return to the main dashboard to view the Restore job and verify that it completes successfully.
+
+    # Verify Restore
+
+    To verify that our data was recovered, run the following command in the terminal to view the restored database:
+
+    ```console
+    MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace mysql mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+    kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "SHOW DATABASES LIKE 'k10demo'"
+    ```
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  - title: K10 Dashboard
+    type: service
+    hostname: k8svm
+    path: /k10/#
+    port: 32000
+  difficulty: basic
+  timelimit: 500
+checksum: "16893958779127977844"

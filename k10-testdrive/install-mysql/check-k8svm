@@ -1,0 +1,22 @@
+#!/bin/bash
+
+MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace mysql mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+if [[ -z ${MYSQL_ROOT_PASSWORD} ]] ; then
+    fail-message "Cannot find MySQL. Was it installed?"
+    exit 1
+fi
+
+kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "SELECT 1"
+if [[ $? -ne 0 ]] ; then
+    fail-message "Unable to discover a running MYSQL"
+    exit 1
+fi
+
+kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "SHOW DATABASES LIKE 'k10demo'" | grep k10demo
+
+if [[ $? -ne 0 ]] ; then
+    fail-message "Unable to discover the k10demo database in MySQL"
+    exit 1
+fi
+
+exit 0

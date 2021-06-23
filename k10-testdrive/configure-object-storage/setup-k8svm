@@ -1,0 +1,6 @@
+#!/bin/bash
+
+kubectl create namespace minio
+helm install minio minio/minio --namespace=minio --version=8.0.0 --set accessKey="AKIAIOSFODNN7EXAMPLE",secretKey="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY" --wait --timeout 5m
+
+exit 0

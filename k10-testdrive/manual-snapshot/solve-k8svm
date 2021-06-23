@@ -1,0 +1,66 @@
+#!/bin/bash
+
+cat > /tmp/mysql-backup-action.yaml <<EOF
+apiVersion: actions.kio.kasten.io/v1alpha1
+kind: BackupAction
+metadata:
+  generateName: manualbackup-
+  namespace: mysql
+  labels:
+    # These labels are required for on-demand actions so that
+    # actions can be filtered.
+    # Label presence is validated.
+    k10.kasten.io/appName: "mysql"
+    k10.kasten.io/appNamespace: "mysql"
+spec:
+  subject:
+    # Reference to the K10App CR for the application
+    name: mysql
+    namespace: mysql
+EOF
+
+kubectl create -f /tmp/mysql-backup-action.yaml
+
+# Wait for an RP to show up
+COUNTER=30
+until [ $COUNTER -lt 0 ]; do
+    RP=$(kubectl get restorepoints --namespace mysql -o name)
+    if [[ ! -z ${RP} ]] ; then
+        break
+    fi
+    let COUNTER-=1
+    sleep 10
+done
+
+RP=$(kubectl get restorepoints --namespace mysql -o name | cut -d '/' -f 2 | tail -1)
+cat > /tmp/mysql-restore-clone-action.yaml <<EOF
+apiVersion: actions.kio.kasten.io/v1alpha1
+kind: RestoreAction
+metadata:
+  generateName: mysql-clone-
+  namespace: mysql-clone
+spec:
+  subject:
+    apiVersion: apps.kio.kasten.io/v1alpha1
+    kind: RestorePoint
+    name: ${RP}
+    namespace: mysql
+  targetNamespace: mysql-clone
+EOF
+
+kubectl create -f /tmp/mysql-restore-clone-action.yaml
+sleep 10
+
+# Check for the cloned MYSQL to be up
+COUNTER=30
+until [ $COUNTER -lt 0 ]; do
+    MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace mysql mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+    kubectl exec -it --namespace=mysql-clone $(kubectl --namespace=mysql-clone get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "SELECT 1"
+    if [[ $? -eq 0 ]] ; then
+        exit 0
+    fi
+    let COUNTER-=1
+    sleep 10
+done
+
+exit 1

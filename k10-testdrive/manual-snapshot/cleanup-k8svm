@@ -1,0 +1,5 @@
+#!/bin/bash
+
+kubectl delete ns mysql-clone
+
+exit 0

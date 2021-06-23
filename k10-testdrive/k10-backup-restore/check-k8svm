@@ -1,0 +1,25 @@
+#!/bin/bash
+
+MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace mysql mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+
+# Wait for MySQL to be up
+sleep 10
+COUNTER=30
+until [ $COUNTER -lt 0 ]; do
+    echo "Waiting for MySQL to be ready... ${COUNTER}"
+    kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "SELECT 1"
+    if [[ $? -eq 0 ]] ; then
+        break
+    fi
+    let COUNTER-=1
+    sleep 5
+done
+
+kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "SHOW DATABASES LIKE 'k10demo'" | grep k10demo
+
+if [[ $? -ne 0 ]] ; then
+    fail-message "Unable to discover the k10demo database in MySQL"
+    exit 1
+fi
+
+exit 0

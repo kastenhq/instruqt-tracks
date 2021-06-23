@@ -1,0 +1,18 @@
+#!/bin/bash
+
+failed=0
+if [[ $(helm repo list | grep charts.kasten.io) ]]; then
+  printf "The Kasten Helm repo was found"
+else
+  fail-message "The Kasten Helm repo has not been added"
+  exit 1
+fi
+
+JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
+kubectl get nodes -o jsonpath="$JSONPATH" | grep "Ready=True"
+if [[ $? -ne 0 ]] ; then
+    fail-message "Unable to find a running Kubernetes"
+    exit 1
+fi
+
+exit ${failed}

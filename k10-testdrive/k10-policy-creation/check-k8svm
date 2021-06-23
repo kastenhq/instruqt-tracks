@@ -1,0 +1,31 @@
+#!/bin/bash
+
+POLICY=$(kubectl --namespace=kasten-io get policies  -o jsonpath="{.items[*].metadata.name}")
+if [[ -z ${POLICY} ]] ; then
+    fail-message "Unable to find a MySQL snapshot"
+    exit 1
+fi
+
+pattern=" |'"
+if [[ ${POLICY} =~ $pattern ]] ; then
+    fail-message "Unable to verify policies as more than one policy was found"
+    exit 1
+fi
+
+FIRST_ACTION=$(kubectl --namespace=kasten-io get policies ${POLICY} -o jsonpath={.spec.actions[0].action})
+SECOND_ACTION=$(kubectl --namespace=kasten-io get policies ${POLICY} -o jsonpath={.spec.actions[1].action})
+KEY=$(kubectl --namespace=kasten-io get policies ${POLICY} -o jsonpath={.spec.selector.matchExpressions[0].key})
+APP=$(kubectl --namespace=kasten-io get policies ${POLICY} -o jsonpath={.spec.selector.matchExpressions[0].values[0]})
+
+if [[ ${FIRST_ACTION} != "backup" || ${SECOND_ACTION} != "export" || $KEY != "k10.kasten.io/appNamespace" || $APP != "mysql" ]] ; then
+    fail-message "Policy not correctly configured (check for Snapshot action and application name to be just mysql"
+    exit 1
+fi
+
+RP=$(kubectl -n mysql get restorepoint -l k10.kasten.io/policyNamespace=kasten-io --no-headers)
+if [[ -z ${RP} ]] ; then
+    fail-message "Unable to find a backup that was created via a policy"
+    exit 1
+fi
+
+exit 0

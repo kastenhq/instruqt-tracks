@@ -1,0 +1,9 @@
+#!/bin/bash
+
+LP=$(kubectl get profiles --namespace kasten-io --no-headers | grep Success)
+if [[ $? -ne 0 || -z ${LP} ]] ; then
+    fail-message "Unable to a valid Location Profile"
+    exit 1
+fi
+
+exit 0

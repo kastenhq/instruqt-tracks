@@ -1,0 +1,24 @@
+#!/bin/bash
+
+RP=$(kubectl get restorepoints --namespace mysql --field-selector=metadata.namespace=mysql --no-headers)
+if [[ -z ${RP} ]] ; then
+    fail-message "Unable to find a MySQL snapshot"
+    exit 1
+fi
+
+# Check for a cloned namespace
+kubectl get ns mysql-clone
+if [[ $? -ne 0 ]] ; then
+    fail-message "Unable to find a cloned MySQL in the mysql-clone namepsace"
+    exit 1
+fi
+
+# Check for the test datatbase
+MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace mysql-clone mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+kubectl exec -it --namespace=mysql-clone $(kubectl --namespace=mysql-clone get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "SHOW DATABASES LIKE 'k10demo'" | grep k10demo
+if [[ $? -ne 0 ]] ; then
+    fail-message "Unable to discover the k10demo database in the cloned MySQL"
+    exit 1
+fi
+
+exit 0

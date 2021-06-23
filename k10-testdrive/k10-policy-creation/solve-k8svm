@@ -1,0 +1,75 @@
+#!/bin/bash
+
+cat > /tmp/k10-backup-policy.yaml <<EOF
+apiVersion: config.kio.kasten.io/v1alpha1
+kind: Policy
+metadata:
+  name: backup-mysql
+  namespace: kasten-io
+  selfLink: /apis/config.kio.kasten.io/v1alpha1/namespaces/kasten-io/policies/backup-mysql
+  uid: f01fd2e1-b0bc-492e-8d5f-a7fbfe2885ec
+  resourceVersion: "74903"
+  generation: 10
+  creationTimestamp: 2020-05-25T17:43:58Z
+  managedFields:
+    - manager: config-server
+      operation: Update
+      apiVersion: config.kio.kasten.io/v1alpha1
+      time: 2020-05-25T21:43:32Z
+spec:
+  comment: null
+  frequency: "@hourly"
+  actions:
+    - action: backup
+    - action: export
+      exportParameters:
+        frequency: "@hourly"
+        profile:
+          name: k10store
+          namespace: kasten-io
+        exportData:
+          enabled: true
+      retention: {}
+  retention:
+    hourly: 24
+    daily: 7
+    weekly: 4
+    monthly: 12
+    yearly: 7
+  selector:
+    matchExpressions:
+      - key: k10.kasten.io/appNamespace
+        operator: In
+        values:
+          - mysql
+EOF
+
+kubectl apply -f /tmp/k10-backup-policy.yaml
+
+cat > /tmp/k10-run-backup.yaml <<EOF
+apiVersion: actions.kio.kasten.io/v1alpha1
+kind: RunAction
+metadata:
+  generateName: run-backup-
+spec:
+  subject:
+    kind: Policy
+    name: backup-mysql
+    namespace: kasten-io
+EOF
+
+kubectl create -f /tmp/k10-run-backup.yaml
+
+# Wait for the backup to complete
+sleep 20
+COUNTER=30
+until [ $COUNTER -lt 0 ]; do
+    RP=$(kubectl -n mysql get restorepoint -l k10.kasten.io/policyNamespace=kasten-io --no-headers)
+    if [[ ! -z ${RP} ]] ; then
+        exit 0
+    fi
+    let COUNTER-=1
+    sleep 10
+done
+
+exit 0
