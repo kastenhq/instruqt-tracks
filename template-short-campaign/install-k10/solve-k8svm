@@ -1,0 +1,8 @@
+#!/bin/bash
+
+kubectl create namespace kasten-io
+helm install k10 kasten/k10 --namespace=kasten-io --wait --timeout 5m
+
+kubectl annotate volumesnapshotclass csi-hostpath-snapclass k10.kasten.io/is-snapshot-class=true
+
+exit 0
