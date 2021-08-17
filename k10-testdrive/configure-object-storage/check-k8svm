@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LP=$(kubectl get profiles --namespace kasten-io --no-headers | grep Success)
+LP=$(kubectl get profiles --namespace kasten-io -o jsonpath='{range .items[*]}{@.spec.locationSpec.objectStore.name}{"\n"}{end}' | grep "k10-bucket")
 if [[ $? -ne 0 || -z ${LP} ]] ; then
     fail-message "Unable to a valid Location Profile"
     exit 1
