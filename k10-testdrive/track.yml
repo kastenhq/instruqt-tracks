@@ -14,14 +14,14 @@ tags:
 - Disaster Recovery
 owner: kasten
 developers:
-- ntolia@kasten.io
 - travis@kasten.io
+- ntolia@kasten.io
 - megan.gay@kasten.io
 private: false
 published: true
 challenges:
 - slug: add-k10-helm-repo
-  id: cdkxtugu29h0
+  id: poerrujdulsb
   type: challenge
   title: Add the Kasten Helm 10 repository
   teaser: Add the K10 Helm repository
@@ -46,7 +46,7 @@ challenges:
   difficulty: basic
   timelimit: 120
 - slug: install-mysql
-  id: vpowhxhcwq8y
+  id: d0xfxya9g7a1
   type: challenge
   title: Install MySQL and Create a Demo Database
   teaser: Install MySQL
@@ -83,7 +83,7 @@ challenges:
   difficulty: basic
   timelimit: 300
 - slug: install-k10
-  id: 60ylbb2mio2u
+  id: 5rsi1uliqy90
   type: challenge
   title: Install K10 and Configure Storage
   teaser: Install K10 and Configure Storage
@@ -117,7 +117,7 @@ challenges:
   difficulty: basic
   timelimit: 500
 - slug: view-k10-dashboard
-  id: jummfvfw5nfa
+  id: lgcx7h2rtepg
   type: challenge
   title: View K10 Dashboard
   teaser: View the K10 Dashboard
@@ -159,7 +159,7 @@ challenges:
   difficulty: basic
   timelimit: 500
 - slug: manual-snapshot
-  id: x1vyy1rcwvgb
+  id: hyn5r5zs9yn9
   type: challenge
   title: Manual Snapshot
   teaser: Perform a manual snapshot and clone operation in just a couple of minutes.
@@ -202,7 +202,7 @@ challenges:
   difficulty: basic
   timelimit: 500
 - slug: configure-object-storage
-  id: uukwjx9nfmbv
+  id: 7mvtbbufy2oq
   type: challenge
   title: Configuring an Object Storage Backup Location
   teaser: Configure an S3-compatible object storage location for backup data
@@ -239,7 +239,7 @@ challenges:
   difficulty: basic
   timelimit: 400
 - slug: k10-policy-creation
-  id: bvhyny0fpqzc
+  id: 1hpnfjdilhdd
   type: challenge
   title: Backup Policy Creation
   teaser: Create an automated policy for application backup
@@ -275,7 +275,7 @@ challenges:
   difficulty: basic
   timelimit: 500
 - slug: k10-backup-restore
-  id: efynety4y1l4
+  id: rg2sodqxkq4k
   type: challenge
   title: Restore from Backup
   teaser: Recovery from accidental data loss
@@ -323,4 +323,4 @@ challenges:
     port: 32000
   difficulty: basic
   timelimit: 500
-checksum: "15266412149201962195"
+checksum: "7955212956558194246"
