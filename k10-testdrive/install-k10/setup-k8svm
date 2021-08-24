@@ -1,0 +1,38 @@
+#!/bin/bash
+
+kubectl create namespace kasten-io
+
+# apply license file
+echo | kubectl apply -f - << EOF
+apiVersion: v1
+data:
+  license: $(cat /root/.kasten/license)
+kind: Secret
+metadata:
+  annotations:
+    meta.helm.sh/release-name: k10
+    meta.helm.sh/release-namespace: kasten-io
+  labels:
+    app: k10
+    app.kubernetes.io/instance: k10
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: k10
+    heritage: Helm
+    release: k10
+  name: k10-license
+  namespace: kasten-io
+type: Opaque
+EOF
+
+# apply EULA so all emails stay the same
+echo | kubectl apply -f - << EOF
+apiVersion: v1
+data:
+  accepted: "true"
+  company: K10 Testdrive
+  email: instruqt-labs@kasten.io
+kind: ConfigMap
+metadata:
+  name: k10-eula-info
+  namespace: kasten-io
+EOF
