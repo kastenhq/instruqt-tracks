@@ -59,8 +59,7 @@ challenges:
     First, install MySQL using the following commands:
 
     ```console
-    kubectl create namespace mysql
-    helm install mysql bitnami/mysql --namespace=mysql
+    helm install mysql bitnami/mysql --create-namespace --namespace=mysql
     ```
 
     To ensure that MySQL is running, check the pod status to make sure they are all in the `Running` state:
