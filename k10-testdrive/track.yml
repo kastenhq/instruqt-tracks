@@ -127,7 +127,7 @@ challenges:
     While not recommended for production environments, let's set up access to the K10 dashboard by creating a NodePort. Let's create the NodePort service for this:
 
     ```console
-    echo | kubectly apply -f - << EOF
+    echo | kubectl apply -f - << EOF
     apiVersion: v1
     kind: Service
     metadata:
