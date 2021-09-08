@@ -12,6 +12,8 @@ tags:
 owner: kasten
 developers:
 - travis@kasten.io
+- megan.gay@kasten.io
+- michael@kasten.io
 private: true
 published: false
 challenges:
@@ -259,4 +261,4 @@ challenges:
     url: https://www.kasten.io/kubecon/ty-free-pass-challenge-21
   difficulty: basic
   timelimit: 280
-checksum: "2944520162196918556"
+checksum: "9449486513182979020"
