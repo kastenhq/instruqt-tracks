@@ -26,9 +26,11 @@ mv ./kind /usr/local/bin
 curl -LO https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl
 chmod +x ./kubectl
 mv ./kubectl /usr/local/bin/kubectl
+echo "alias k=kubectl" >> /root/.bashrc
 
 # Install Helm 3
 curl -fsSL https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz | tar -zxvf - -C /usr/local/bin/ linux-amd64/helm --strip=1
+
 
 # Download the base kind image
 docker pull kindest/node:v1.21.1
@@ -72,4 +74,24 @@ kubectl patch storageclass standard \
     -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"false"}}}'
 kubectl patch storageclass csi-hostpath-sc \
     -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+
+
+
+# https://github.com/NetApp/trident/issues/556
+kubectl delete sc csi-hostpath-sc
+cat <<EOF | kubectl create -f -
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"  
+  name: csi-hostpath-sc
+allowVolumeExpansion: true
+provisioner: hostpath.csi.k8s.io
+parameters:
+  fsType: ext4  
+reclaimPolicy: Delete
+volumeBindingMode: Immediate
+EOF
 

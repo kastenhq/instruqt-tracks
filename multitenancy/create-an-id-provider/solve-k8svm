@@ -1,0 +1,5 @@
+#!/bin/bash
+
+kubecltl apply -f dex.yaml
+
+exit 0

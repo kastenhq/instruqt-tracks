@@ -1,0 +1,5 @@
+#!/bin/bash
+
+kubectl create rolebinding alice-mysql-k10-basic --clusterrole=k10-basic --user=alice --namespace=mysql
+
+exit 0

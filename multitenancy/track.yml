@@ -1,0 +1,548 @@
+slug: multitenancy
+id: ehahfdlqajix
+type: track
+title: Managing multitenancy with RBAC
+teaser: Learn how to manage multitenancy in kasten using OIDC and kubernetes RBAC
+description: In order to allow kasten to be used by different users with different
+  capacity we need to implement multitenancy in Kasten, this can be done using an
+  identity provider and RBAC rules. In this track you're going to learn both
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags:
+- Kubernetes
+- RBAC
+- Multitenancy
+- Backup
+- Disaster Recovery
+owner: kasten
+developers:
+- michael@kasten.io
+private: true
+published: false
+challenges:
+- slug: create-an-id-provider
+  id: 4lmjurxymwqg
+  type: challenge
+  title: Add an id provider
+  teaser: We're going to use dex to create a local id provider
+  notes:
+  - type: text
+    contents: |-
+      Managing multitenancy involves two things :
+      * defines role for each users or group of users
+      * identify users
+
+      Click on the right arrrow to have more details.
+  - type: text
+    contents: |-
+      We define role for each user through Kubernetes RBAC.
+
+      Kasten ClusterRole and Role defines verb on Kasten API, like for instance `create` (verb) `backupaction` (kasten API).
+
+      ClusterRoleBinding and RoleBinding bind user to ClusterRole and Role, like for instance `eric` has the ClusterRole `k10-admin`.
+
+      If you need a better understanding of Kubernetes RBAC we strongly encourage you to read this [comprehensive guide](https://medium.com/devops-mojo/kubernetes-role-based-access-control-rbac-overview-introduction-rbac-with-kubernetes-what-is-2004d13195df)
+  - type: text
+    contents: |2-
+
+      To identify user Kasten support different authentication schemes :
+      * No authentication, often used with `kubectl port-forward` when you don't want to expose directly the kasten service
+      * Basic Auth
+      * Token auth (any token that can be verified by the Kubernetes server)
+      * OIDC (Open ID Connect)
+      * LDAP and Openshift which are indirectly using OIDC through the [DEX component](https://dexidp.io).
+
+      Only Token Auth and OIDC allow us to identify more than one user and are applicable for multitenancy.
+  - type: text
+    contents: |2-
+
+      On this track we'll concentrate on OIDC because it's a very well supported and adopted identification and authentication protocol
+
+      If you need a better understanding of OIDC we strongly encourage you to read this [comprehensive guide](https://developer.okta.com/blog/2019/10/21/illustrated-guide-to-oauth-and-oidc).
+
+      In the next image we'll show the sequence of events when a user accesses K10’s dashboard with an OIDC Provider.
+  - type: image
+    url: https://blog.kasten.io/hs-fs/hubfs/Blog%20Images/OIDC/auth%20flow%20diagram.jpeg?width=1000&name=auth%20flow%20diagram.jpeg
+  - type: text
+    contents: |-
+      We're going to build an OIDC provider in the same kubernetes cluster where we deploy kasten.
+
+      Note that usually OIDC provider are not deployed within the same cluster than your application but separately on the cloud
+      (Azure Active Diretory, Okta, Google Connect ...) or as an entreprise component with high availibility (Keyclock, Pingidentity ...).
+  assignment: |2-
+
+    Many OIDC provider exist in the market and Kasten can work with any OIDC compliant provider.
+
+    For this track we're going to install a minimalist OIDC provider with [dex](https://dexidp.io) in staticPassword mode in the same cluster.
+
+    ```console
+    kubectl apply -f dex.yaml
+    ```
+
+    This yaml file build a dex service with static users in the same cluster where kasten will be installed
+
+    Let's review it :
+    ```console
+    cat dex.yaml
+    ```
+
+    Notice different elements in this file :
+
+    The issuer :
+    ```
+    issuer: http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex
+    ```
+    Which define the root of the different oidc endpoints a provider must implement. If you execute
+
+    ```console
+    curl http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex/.well-known/openid-configuration | grep endpoint
+    ```
+
+    You can see that all the service endpoint are under the issuer url
+
+    ```
+    http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex
+    ```
+
+    for instance
+    ```
+    "authorization_endpoint": "http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex/auth"
+    ```
+
+    You may also notice in the dex.yaml file the staticClients section
+    ```
+    staticClients:
+    - name: 'K10'
+      id: kasten
+      secret: kastensecret
+      redirectURIs:
+      - http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32000/k10/auth-svc/v0/oidc/redirect
+      - https://oidcdebugger.com/debug
+    ```
+
+    Kasten will be a client of this identity provider and must
+    be declared as such, the secret `kastensecret` will be shared between kasten and dex.
+
+    The redirect section is here for security reason, we don't want an attacker start the user authentication
+    flow and leverage it by redirecting him to a fake web application, therefore we limit the possible redirects in this list.
+
+    We also see that there is a redirect to https://oidcdebugger.com/debug which is an implicit client that will
+    help us to verify the content of the JWT Token sent by the dex service. Checking the real content of the JWT
+    token is important to adapt the kasten configuration.
+
+    On the section
+    ```
+    oauth2:
+      skipApprovalScreen: true
+      responseTypes: ["code", "token", "id_token"]
+    ```
+
+    we also allow the response type `token` and `id_token` to let oidcdebugger.com initiate an implicit flow so that
+    you don't need to expose the client secret.
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  difficulty: basic
+  timelimit: 1500
+- slug: check-jwt-token
+  id: zvgjixr2hcaw
+  type: challenge
+  title: Check the content of the JWT Token
+  teaser: Check the content of the JWT Token returned by the dex service using https://oidcdebugger.com/debug
+  assignment: |-
+    You can now check the jwt token returned by the dex service by initiating an implicit flow with oidcdebugger.
+
+    First identify the authorization enpoint exposed by the dex service
+
+    ```
+    curl http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex/.well-known/openid-configuration | jq -r '.authorization_endpoint'
+    ```
+
+    Open the oidcdebugger tab and fill up the form with those information.
+    * the authorization endpoint you just output
+    * client id : `kasten` (refer to dex.yaml file)
+    * Scope : `openid profile email`
+    * Response type : `code`, `token` and `id_token`
+
+    Click submit you'll be redirected to the dex login page.
+
+    Use one of the static user define in the dex file for instance `dev@example.com` email with `password` password.
+
+    You'll comeback to oidcdebugger with the content of the JWT Token, for example:
+    ```
+    Payload
+
+    {
+       "iss": "http://k8svm.htxtr2wfts64.instruqt.io:32010/dex",
+       "sub": "CigwOGE4Njg0Yi1kYjg4LTRiNzMtOTBhOS0zY2QxNjYxZjU0NjYtZGV2EgVsb2NhbA",
+       "aud": "kasten",
+       "exp": 1639667083,
+       "iat": 1639580683,
+       "nonce": "z6o7vrbamjf",
+       "at_hash": "H7GbmEvm71pPYm8X-EM1ow",
+       "email": "dev@example.com",
+       "email_verified": true,
+       "name": "eric"
+    }
+    ```
+
+    Create a file jwt.txt on the current directory where you copy the payload.
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  - title: OIDC Debugger
+    type: website
+    url: https://oidcdebugger.com/debug
+    new_window: true
+  difficulty: basic
+  timelimit: 600
+- slug: install-k10
+  id: xcdoi0xgafoy
+  type: challenge
+  title: Install K10 with the OIDC provider
+  teaser: Install K10 and Configure Storage
+  assignment: |-
+    # Install Kasten K10
+
+    In this step, we will actually install K10 with those oidc options :
+    ```
+    --set auth.oidcAuth.enabled=true \
+    --set auth.oidcAuth.clientID=kasten \
+    --set auth.oidcAuth.clientSecret=kastensecret \
+    --set auth.oidcAuth.providerURL=http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex \
+    --set auth.oidcAuth.redirectURL=http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32000/ \
+    --set auth.oidcAuth.scopes="openid email profile" \
+    --set auth.oidcAuth.usernameClaim=name \
+    --set auth.oidcAuth.usernamePrefix="-"
+    ```
+
+    They are consistent with the OIDC provider we've setup and the content of the JWT token.
+
+    Those options are described [here](https://docs.kasten.io/latest/access/authentication.html#openid-connect-authentication).
+
+    Let's install now :
+
+    ```console
+    helm repo add kasten https://charts.kasten.io/
+    helm repo update
+
+    kubectl create ns kasten-io
+    kubectl create -f license-secret.yaml
+
+    helm install k10 kasten/k10 --namespace=kasten-io \
+    --set auth.oidcAuth.enabled=true \
+    --set auth.oidcAuth.clientID=kasten \
+    --set auth.oidcAuth.clientSecret=kastensecret \
+    --set auth.oidcAuth.providerURL=http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex \
+    --set auth.oidcAuth.redirectURL=http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32000/ \
+    --set auth.oidcAuth.scopes="openid email profile" \
+    --set auth.oidcAuth.usernameClaim=name \
+    --set auth.oidcAuth.usernamePrefix="-" \
+    --set global.persistence.size=1Gi \
+    --set prometheus.server.persistentVolume.size=1Gi
+    ```
+
+    To ensure that Kasten K10 is running, check the pod status to make sure they are all in the `Running` state:
+
+    ```console
+    watch -n 2 "kubectl -n kasten-io get pods"
+    ```
+
+    Once all pods have a Running status, hit `CTRL + C` to exit `watch`.
+
+    # Configure the Local Storage System
+
+    Once K10 is running, use the following commands to configure the local storage system.
+
+    ```console
+    kubectl annotate volumesnapshotclass csi-hostpath-snapclass k10.kasten.io/is-snapshot-class=true
+    ```
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  difficulty: basic
+  timelimit: 1500
+- slug: view-k10-dashboard
+  id: ukny2eatrvla
+  type: challenge
+  title: View K10 Dashboard
+  teaser: View the K10 Dashboard
+  assignment: |-
+    # Expose the K10 dashboard
+
+    While not recommended for production environments, let's set up access to the K10 dashboard by creating a NodePort. Let's first create the configuration file for this:
+
+    ```console
+    cat > k10-nodeport-svc.yaml << EOF
+    apiVersion: v1
+    kind: Service
+    metadata:
+      name: gateway-nodeport
+      namespace: kasten-io
+    spec:
+      selector:
+        service: gateway
+      ports:
+      - name: http
+        port: 8000
+        nodePort: 32000
+      type: NodePort
+    EOF
+    ```
+
+    Now, let's create the actual NodePort Service
+
+    ```console
+    kubectl apply -f k10-nodeport-svc.yaml
+    ```
+    # View the K10 Dashboard
+
+    Once completed, you should be able to view the K10 dashboard in the other tab on the left.
+    Kasten act as a client of the dex OIDC provider and you'll have to provide the same email/password
+    than you did with oidcdebugger. This time the JWT token won't be shown but used by kasten to identify
+    the user.
+
+    Once you passed the registration screen you'll see on the upper right that you are identified as `eric`.
+    `eric` is the user name because we configure Kasten to use this claim in the JWT token to identify the user.
+    ```
+    --set auth.oidcAuth.usernameClaim=name
+    ```
+
+    But eric has a limited access and can't see any namespaces.
+
+    It's because `eric` does not have any RBAC rule allowing him
+    to do operations. You can check that in Settings > Support > Cluster information > View Current User Details.
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  - title: K10 Dashboard
+    type: service
+    hostname: k8svm
+    path: /k10/#
+    port: 32000
+    new_window: true
+  difficulty: basic
+  timelimit: 600
+- slug: create-a-kasten-admin
+  id: pzby8cr80jck
+  type: challenge
+  title: Create a Kasten Admin
+  teaser: Use the built in ClusterRole to make the identified user a Kasten Administrator
+  assignment: |-
+    # Identify built-in cluster role
+
+    When you install kasten it comes with built in Kasten ClusterRole.
+
+    You can attach a ClusterRole
+    *  in a ClusterRoleBinding (which is not a namespaced object) and in this case the role is applied for the user in all the namespaces
+    *  in a RoleBinding (which is a namespaced object) and in this case the role is applied for the user only in this namespace
+
+    List all the built in ClusterRole brought during Kasten installation
+    ```console
+    kubectl get clusterrole |grep k10
+    ```
+
+    List all the built in role in the kasten-io namespace brought during Kasten installation
+    ```console
+    kubectl get role -n kasten-io
+    ```
+
+    Those ClusterRole/Role are described in the [kasten RBAC documentation](https://docs.kasten.io/latest/access/rbac.html).
+
+    # Give eric the k10-admin role on all the namespaces
+
+    The username eric is the username that is used by Kasten to impersonate each request made to the kubernetes API.
+
+    Let's see if `eric` can create a backupaction in any namespace ?
+
+    ```console
+    kubectl auth can-i create backupactions.actions.kio.kasten.io --as=eric --all-namespaces
+    ```
+
+    The answer should be no...
+
+    Let's apply a clusterrolebinding then
+    ```console
+    kubectl create clusterrolebinding eric-k10-admin --clusterrole=k10-admin --user=eric
+    ```
+
+    And now I can ask again my previous question
+    ```
+    kubectl auth can-i create backupactions.actions.kio.kasten.io --as=eric --all-namespaces
+    ```
+
+    This time the answer is yes ! And you'll see a big change in the kasten dashboard as well. All the namespaces
+    are now available and if you check the  Settings > Support > Cluster information > View Current User Details
+    you can see that you can now perform all operations.
+
+    But you notice also that you constantly get this popup saying "K10 services are reporting errors". Actually
+    There is no errors but because you are k10-admin on all namespaces - kasten-io included, the dashboard impersonate
+    `eric` to check the health of the kasten-io namespace.
+
+    But the k10-admin ClusterRole is only made for manipulating Kasten API not deployment or secret. So for this special
+    case we need to bind the local role kasten-ns-admin in the kasten-io namespace to eric :
+    ```console
+     kubectl create rolebinding eric-k10-ns-admin --role=k10-ns-admin --user=eric --namespace=kasten-io
+    ```
+
+    Now with eric you have a working k10-admin among your users.
+
+    Let's check that eric is really able to use Kasten, create a policy for the `default` namespace with all the default option an run it once.
+
+    It's your turn now. Make sure `robert` is also a Kasten Admin.
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  - title: K10 Dashboard
+    type: service
+    hostname: k8svm
+    path: /k10/#
+    port: 32000
+    new_window: true
+  difficulty: basic
+  timelimit: 600
+- slug: install-mysql
+  id: gdsdkemtacv5
+  type: challenge
+  title: Install MySQL and Create a Demo Database
+  teaser: Install MySQL
+  notes:
+  - type: text
+    contents: As an intermediate step, we will create a mysql namespace and allow
+      `alice` to only see this namespace and she'll be able to create backup and restore
+      also.
+  assignment: |
+    To experiment with backup and recovery of a cloud-native application, we will install MySQL and create a database in this step.
+
+    First, install MySQL using the following commands:
+
+    ```console
+    helm repo add bitnami https://charts.bitnami.com/bitnami
+    helm repo update
+    helm install mysql bitnami/mysql --create-namespace --namespace=mysql
+    ```
+
+    To ensure that MySQL is running, check the pod status to make sure they are all in the `Running` state:
+
+    ```console
+    watch -n 2 "kubectl -n mysql get pods"
+    ```
+
+    Once all pods have a `Running` status, hit `CTRL + C` to exit watch and then run the following commands to create a local database.
+
+    ```console
+    MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace mysql mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+
+    kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') \
+      -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "CREATE DATABASE k10demo"
+    ```
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  difficulty: basic
+  timelimit: 300
+- slug: create-a-kasten-basic-user
+  id: 9uchimsha4ny
+  type: challenge
+  title: Create a Kasten basic user
+  teaser: Create a Kasten basic user with access to only his namespace for backup
+    and restore operation
+  assignment: |2-
+
+    You are going now to logout and login as `test@example.com`/`password` which correspond to the name `alice`.
+
+    You should see no applications available for alice.
+
+    And we can check also that alice is not allowed to create backupaction on the mysql namespace.
+
+    ```
+    kubectl auth can-i create backupactions.actions.kio.kasten.io --as=alice -n mysql
+    ```
+
+    The answer should be no.
+
+    We want to limit access for `alice` to only the `mysql` namespace where she'll be able to perform backup and restore
+    of this namespace.
+
+    Check the content of the Role kasten-basic
+
+    ```
+    kubectl get clusterrole k10-basic -o yaml
+    ```
+
+    You can see the diffent action a basic-user can do particulary create BackupAction or RestoreAction.
+
+    Let's Alice be a basic-user on this namespace.
+
+    ```
+    kubectl create rolebinding alice-mysql-k10-basic --clusterrole=k10-basic --user=alice --namespace=mysql
+    ```
+
+    Now let check that alice can create backup action
+    ```
+    kubectl auth can-i create backupactions.actions.kio.kasten.io --as=alice --namespace=mysql
+    ```
+
+    The answer should be yes this time.
+
+    Go in the dashboard. You should see the mysql namespace and only the mysql namespace.
+
+    Try to perfom a backup by going to the application tile and click the "snapshot" button.
+
+    It's your turn now, make the necessary operation so that `michael` can create backupaction on the mysql namespace.
+  tabs:
+  - title: Terminal
+    type: terminal
+    hostname: k8svm
+  - title: K10 Dashboard
+    type: service
+    hostname: k8svm
+    path: /k10/#
+    port: 32000
+    new_window: true
+  difficulty: basic
+  timelimit: 600
+- slug: end
+  id: pgbiacbbaoxb
+  type: challenge
+  title: You have finished the lab
+  teaser: Congratulation you have finish the multitenancy lab
+  notes:
+  - type: text
+    contents: |-
+      # Congratulations !
+
+      You have successfully :
+      * Set up an OIDC provider
+      * Use this OIDC provder with Kasten to authenticate user
+      * Create a Kasten Admin
+      * Create a Basic User
+
+      Click on the right arrrow to see how to go further.
+  - type: text
+    contents: |-
+      # To go further
+
+      * The simple OIDC provider we used with static users does not support groups and there is no group in the JWT Token. Binding to group rather than user scale better for bigger organization
+      * Check a [real OIDC use case](https://blog.kasten.io/posts/using-azure-ad-with-kasten-k10-for-authentication-and-authorization) with Azure Active Directory and compare with the installation we tried
+      * Kasten support LDAP and Openshift authentication by embedding the [dex component](https://dexidp.io) using the LDAP and Openshft Connector.
+  assignment: |
+    Implement multitenancy with Azure AD
+
+    Now that you have understood how to integrate an OIDC provider with Kasten let's move to a more realistic use case : integrate Kasten with Azure AD.
+
+    As you know Azure AD features OIDC endpoint to let your application identify the users against it.
+
+    In this blog post you have a step by step tutorial that explain you how to do that, you'll be able to connect this tutorial with the elements that you learnt from the track.
+  tabs:
+  - title: See a professional use case leveraging Azure AD OIDC connector
+    type: website
+    url: https://blog.kasten.io/posts/using-azure-ad-with-kasten-k10-for-authentication-and-authorization
+  difficulty: basic
+  timelimit: 280
+checksum: "9491991837677540096"

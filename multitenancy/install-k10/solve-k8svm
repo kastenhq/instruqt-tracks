@@ -1,0 +1,22 @@
+#!/bin/bash
+
+helm repo add kasten https://charts.kasten.io/
+helm repo update
+kubectl create ns kasten-io
+helm install k10 kasten/k10 --namespace=kasten-io \
+--set auth.oidcAuth.enabled=true \
+--set auth.oidcAuth.clientID=kasten \
+--set auth.oidcAuth.clientSecret=kastensecret \
+--set auth.oidcAuth.providerURL=http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex \
+--set auth.oidcAuth.redirectURL=http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32000/ \
+--set auth.oidcAuth.scopes="openid email profile" \
+--set auth.oidcAuth.usernameClaim=name \
+--set auth.oidcAuth.usernamePrefix="-" \
+--set global.persistence.size=1Gi \
+--set prometheus.server.persistentVolume.size=1Gi \
+--set prometheus.server.persistentVolume.size=1Gi
+
+
+kubectl annotate volumesnapshotclass csi-hostpath-snapclass k10.kasten.io/is-snapshot-class=true
+
+exit 0

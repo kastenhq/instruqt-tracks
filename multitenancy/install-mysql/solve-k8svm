@@ -1,0 +1,22 @@
+#!/bin/bash
+
+kubectl create namespace mysql
+helm install mysql bitnami/mysql --namespace=mysql --wait --timeout 5m
+
+MYSQL_ROOT_PASSWORD=$(kubectl get secret --namespace mysql mysql -o jsonpath="{.data.mysql-root-password}" | base64 --decode; echo)
+
+# Wait for MySQL to be up
+sleep 10
+COUNTER=20
+until [ $COUNTER -lt 0 ]; do
+    echo "Waiting for MySQL to be ready... ${COUNTER}"
+    kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "SELECT 1"
+    if [[ $? -eq 0 ]] ; then
+        break
+    fi
+    let COUNTER-=1
+    sleep 5
+done
+
+kubectl exec -it --namespace=mysql $(kubectl --namespace=mysql get pods -o jsonpath='{.items[0].metadata.name}') -- mysql -u root --password=$MYSQL_ROOT_PASSWORD -e "CREATE DATABASE k10demo"
+exit 0

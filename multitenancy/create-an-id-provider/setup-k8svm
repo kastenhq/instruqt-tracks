@@ -1,0 +1,157 @@
+#!/bin/bash
+#
+# This is a sample setup script. Rename this file to setup-$CONTAINER
+# (where $container is the name of the container as defined in your config.yml),
+# and replace this content with your own script.
+#
+# This script will be run when you setup the challenge.
+#
+# Remember that the exit code is important. See the documentation
+# for more information.
+#
+
+# Wait for Kubernetes to be up
+JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
+COUNTER=60
+until [ $COUNTER -lt 0 ]; do
+    echo "Waiting for Kubernetes to be ready... ${COUNTER}" >> logs
+    kubectl get nodes -o jsonpath="$JSONPATH" | grep "Ready=True"
+    if [[ $? -eq 0 ]] ; then
+        let COUNTER=0
+    fi
+    docker ps
+    let COUNTER-=1
+    sleep 5
+done
+
+# Create the dex connfiguration file to apply 
+cat <<EOF > dex.yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: dex
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  namespace: dex
+  labels:
+    app: dex
+  name: dex
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dex
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: dex
+    spec:
+      containers:
+      - image: ghcr.io/dexidp/dex:v2.30.0
+        name: dex
+        ports:
+        - containerPort: 8080
+          name: http
+          protocol: TCP        
+        volumeMounts:
+        - mountPath: /etc/dex/cfg
+          name: config
+        command:
+        - /usr/local/bin/dex
+        - serve
+        - /etc/dex/cfg/config.yaml
+      volumes:
+      - configMap:
+          defaultMode: 420
+          items:
+          - key: config.yaml
+            path: config.yaml
+          name: dex-config
+        name: config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dex-nodeport
+  namespace: dex
+spec:
+  selector:
+    app: dex
+  ports:
+  - name: http
+    port: 8080
+    nodePort: 32010
+  type: NodePort
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dex-config
+  namespace: dex
+data:
+  config.yaml: |
+    issuer: http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex    
+    storage:
+      type: memory
+    web:
+      http: 0.0.0.0:8080
+    logger:
+      level: info
+      format: text
+    #connectors:
+    #- type: mockCallback
+    #  id: mock
+    #  name: "Kasten static users"
+    enablePasswordDB: true
+    staticPasswords:
+    - email: "dev@example.com"
+      # bcrypt hash of the string "password": \$(echo password | htpasswd -BinC 10 dev | cut -d: -f2)
+      hash: "\$2y\$10\$RUuUlHkcCPYBjnYYZCMQPOSk.gQOkfMHFuyHeF88pIZOpIZLacT/6"
+      username: "eric"
+      userID: "08a8684b-db88-4b73-90a9-3cd1661f5466-dev"
+    - email: "test@example.com"
+      hash: "\$2y\$10\$Jl9tPaYItT7F1nd9Io2dd.2Q4e9vyQ43WHKo4Ds91tkWNp8tUoDBS"
+      username: "alice"
+      userID: "08a8684b-db88-4b73-90a9-3cd1661f5466-test"    
+    - email: "admin@example.com"
+      hash: "\$2y\$10\$ANyPW6hFOnrbzGGXtA/D7uDJKBI4SgsAZoe05PlBo0.38M39FjdwG"
+      username: "robert"
+      userID: "08a8684b-db88-4b73-90a9-3cd1661f5466-admin"   
+    - email: "k10admin@example.com"
+      hash: "\$2y\$10\$UoYnbZmDsUZCUoUZ.1ofcObUXhZE4X4SIIS34cT5vfrmJYnq2m8Wy"
+      username: "michael"
+      userID: "08a8684b-db88-4b73-90a9-3cd1661f5466-k10admin"      
+    oauth2:
+      skipApprovalScreen: true
+      responseTypes: ["code", "token", "id_token"]
+    staticClients:
+    - name: 'K10'
+      id: kasten
+      secret: kastensecret
+      redirectURIs:
+      - http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32000/k10/auth-svc/v0/oidc/redirect
+      - https://oidcdebugger.com/debug      
+EOF
+
+alias k=kubectl
+
+# Wait for Kubernetes to be up
+JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
+COUNTER=60
+until [ $COUNTER -lt 0 ]; do
+    echo "Waiting for Kubernetes to be ready... ${COUNTER}"
+    kubectl get nodes -o jsonpath="$JSONPATH" | grep "Ready=True"
+    if [[ $? -eq 0 ]] ; then
+        exit 0
+    fi
+    docker ps
+    let COUNTER-=1
+    sleep 5
+done
+
+exit 1

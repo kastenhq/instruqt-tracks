@@ -1,0 +1,13 @@
+#!/bin/bash
+
+if ! ls jwt.txt; then 
+    fail-message "jwt.txt can't be found"
+    exit 1
+fi 
+
+if ! grep "http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010/dex" jwt.txt; then
+    fail-message "The issuer found in jwt.txt is not correct"
+    exit 1
+fi
+
+exit 0

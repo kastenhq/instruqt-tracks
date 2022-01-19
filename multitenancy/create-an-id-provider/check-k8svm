@@ -1,0 +1,5 @@
+#!/bin/bash
+
+# check the well known page 
+curl -I http://k8svm:32010/dex/.well-known/openid-configuration |grep "HTTP/1.1 200 OK"
+exit $?

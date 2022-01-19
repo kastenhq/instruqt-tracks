@@ -1,0 +1,7 @@
+#!/bin/bash
+
+kubectl create clusterrolebinding eric-k10-admin --clusterrole=k10-admin --user=eric
+
+kubectl create rolebinding eric-k10-ns-admin --role=k10-ns-admin --user=eric --namespace=kasten-io
+
+exit 0

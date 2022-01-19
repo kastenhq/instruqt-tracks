@@ -1,0 +1,31 @@
+#!/bin/bash
+
+if ! kubectl auth can-i create backupactions.actions.kio.kasten.io --as=eric --all-namespaces; then 
+    fail-message "User eric can't create backupaction in any namespaces"
+    exit 1
+fi
+
+if ! kubectl auth can-i get deployment --as=eric -n kasten-io; then 
+    fail-message "User eric can't get deployment in the kasten-io namespace"
+    exit 1
+fi
+
+
+if ! kubectl auth can-i create backupactions.actions.kio.kasten.io --as=robert --all-namespaces; then 
+    fail-message "User robert can't create backupaction in any namespaces"
+    exit 1
+fi
+
+if ! kubectl auth can-i get deployment --as=robert -n kasten-io; then 
+    fail-message "User robert can't get deployment in the kasten-io namespace"
+    exit 1
+fi
+
+
+if [ "$(kubectl get backupaction -n default |wc -l)" -eq 0 ]; then 
+   fail-message "No backup actions found in the default project, did you create the policy and run it once ?"
+   exit 1
+fi
+
+
+exit 0

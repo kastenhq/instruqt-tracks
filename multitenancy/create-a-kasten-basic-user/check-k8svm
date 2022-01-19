@@ -1,0 +1,14 @@
+#!/bin/bash
+
+if ! kubectl auth can-i create backupactions.actions.kio.kasten.io --as=alice --namespace=mysql; then 
+    fail-message "User alice can't create backupaction in the mysql namespace"
+    exit 1
+fi
+
+if ! kubectl auth can-i create backupactions.actions.kio.kasten.io --as=michael --namespace=mysql; then 
+    fail-message "User michael can't create backupaction in the mysql namespace"
+    exit 1
+fi
+
+
+exit 0
