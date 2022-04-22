@@ -1,0 +1,24 @@
+#!/bin/bash
+set -euxo pipefail
+
+cat <<EOF |kubectl -n kasten-io create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: gateway-diag-nodeport
+spec:
+  selector:
+    component: gateway
+  ports:
+  - name: http
+    port: 8877
+    nodePort: 32030
+  type: NodePort
+EOF
+
+echo https://$HOSTNAME-32000-$INSTRUQT_PARTICIPANT_ID.env.play.instruqt.com/k10/prometheus/graph > ambassador-challenge.txt
+
+cat <<EOF > frontend-challenge.txt
+02. frontend service can work without dashboardbff service but the GUI won't display the real content
+05. All request coming from the browser are passing trhough gateway anyway 
+EOF

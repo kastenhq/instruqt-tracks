@@ -1,0 +1,47 @@
+#!/bin/bash
+set -euxo pipefail
+
+kubectl create namespace mysql
+cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mysql
+  namespace: mysql
+spec:
+  selector:
+    matchLabels:
+      app: mysql
+  serviceName: mysql
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      securityContext:
+        runAsUser: 0 
+      containers:
+      - name: mysql
+        image: mysql:8.0.26
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: ultrasecurepassword   
+        ports:
+        - containerPort: 3306
+          name: mysql
+        volumeMounts:
+        - name: data
+          mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+  - metadata:
+      name: data
+    spec:
+      # storageClassName: basic      
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 5Gi
+EOF
+
+exit 0

@@ -1,0 +1,17 @@
+slug: airgapped-install
+id: xqsr7pmxlgka
+type: track
+title: Airgapped install
+teaser: Learn how to deploy Kasten in airgapped mode.
+description: |-
+  In many cases you need to deploy Kasten in an airgapped environment.
+  Current situation is to have an internal registry instead of a public registry
+  to pull the images and a NFS share instead of a public S3 infrastructure.
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags: []
+owner: kasten
+developers:
+- michael@kasten.io
+private: true
+published: true
+checksum: "13945232371313023624"

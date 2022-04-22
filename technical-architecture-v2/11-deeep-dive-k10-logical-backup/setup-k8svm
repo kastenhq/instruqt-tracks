@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# This is a sample setup script. Rename this file to setup-$CONTAINER
+# (where $container is the name of the container as defined in your config.yml),
+# and replace this content with your own script.
+#
+# This script will be run when you setup the challenge.
+#
+# Remember that the exit code is important. See the documentation
+# for more information.
+#
+
+cat <<EOF > logical-backup-challenge.txt
+01. With logical backup snapshot are not taken 
+02. With logical backup snapshot are taken but not exported  
+03. With logical backup snapshot are not taken but replaced by the kanister backup action
+04. With logical backup snapshot are sent to the location profile
+05. With logical backup snapshot are not sent to the location profile but the logical dump is sent instead
+EOF
+
+cat <<EOF > logical-backup-challenge-readonly.txt
+01. With logical backup snapshot are not taken 
+02. With logical backup snapshot are taken but not exported  
+03. With logical backup snapshot are not taken but replaced by the kanister backup action
+04. With logical backup snapshot are sent to the location profile
+05. With logical backup snapshot are not sent to the location profile but the logical dump is sent instead
+EOF

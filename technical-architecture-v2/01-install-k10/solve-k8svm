@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euxo pipefail
+
+helm repo add kasten https://charts.kasten.io/
+helm repo update
+kubectl create ns kasten-io
+kubectl create -f license-secret.yaml
+helm install k10 kasten/k10 --namespace=kasten-io --wait
+kubectl annotate volumesnapshotclass csi-hostpath-snapclass k10.kasten.io/is-snapshot-class=true
+
+exit 0

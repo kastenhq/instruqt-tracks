@@ -1,0 +1,65 @@
+#!/bin/bash
+set -euxo pipefail
+
+helm repo add minio https://helm.min.io/
+
+kubectl create ns minio
+helm install kasten-minio minio/minio --namespace=minio --version 8.0.10 \
+  --set persistence.size=5Gi --wait
+
+cat <<EOF | kubectl create -f -
+apiVersion: v1
+kind: Service
+metadata:
+  name: minio-nodeport
+  namespace: minio
+spec:
+  selector:
+    app: minio
+    release: kasten-minio
+  ports:
+  - name: http
+    port: 9000
+    nodePort: 32010
+  type: NodePort
+EOF
+
+sleep 1 
+
+ACCESS_KEY=$(kubectl -n minio get secret kasten-minio -o jsonpath="{.data.accesskey}" | base64 --decode)
+SECRET_KEY=$(kubectl -n minio get secret kasten-minio -o jsonpath="{.data.secretkey}" | base64 --decode)
+MINIO_ENDPOINT="http://$HOSTNAME.$INSTRUQT_PARTICIPANT_ID.instruqt.io:32010"
+
+
+kubectl create secret generic k10secret-minio -n kasten-io \
+   --from-literal=aws_access_key_id=$ACCESS_KEY \
+   --from-literal=aws_secret_access_key=$SECRET_KEY
+
+cat <<EOF | kubectl create -f - 
+kind: Profile
+apiVersion: config.kio.kasten.io/v1alpha1
+metadata:
+  name: kasten-bucket
+  namespace: kasten-io
+spec:
+  locationSpec:
+    type: ObjectStore
+    objectStore:
+      endpoint: $MINIO_ENDPOINT
+      name: kasten
+      objectStoreType: S3      
+      pathType: Directory
+    credential:
+      secretType: AwsAccessKey
+      secret:
+        apiVersion: v1
+        kind: secret
+        name: k10secret-minio
+        namespace: kasten-io
+  type: Location
+EOF
+
+exit 0
+
+
+

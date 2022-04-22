@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euxo pipefail
+
+cat <<EOF > catalog-challenge.txt
+STOREMETADATA
+PRIMARY
+/mnt/k10state/kasten-io/catalog/model-store.db
+EOF

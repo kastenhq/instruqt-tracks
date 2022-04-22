@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# This is a sample setup script. Rename this file to setup-$CONTAINER
+# (where $container is the name of the container as defined in your config.yml),
+# and replace this content with your own script.
+#
+# This script will be run when you setup the challenge.
+#
+# Remember that the exit code is important. See the documentation
+# for more information.
+#
+
+touch ambassador-challenge.txt
+
+cat <<EOF > frontend-challenge.txt
+01. frontend service can work only if dashboardbff service can work 
+02. frontend service can work without dashboardbff service but the GUI won't display the real content
+03. All request coming from the browser are passing trhough gateway except auth service
+04. All request coming from the browser are passing trhough gateway except dashboardbff
+05. All request coming from the browser are passing trhough gateway anyway 
+EOF
+
+cat <<EOF > frontend-challenge-readonly.txt
+01. frontend service can work only if dashboardbff service can work 
+02. frontend service can work without dashboardbff service but the GUI won't display the real content
+03. All request coming from the browser are passing trhough gateway except auth service
+04. All request coming from the browser are passing trhough gateway except dashboardbff
+05. All request coming from the browser are passing trhough gateway anyway 
+EOF

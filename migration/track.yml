@@ -1,0 +1,19 @@
+slug: migration
+id: 6hmb82rhtwvr
+type: track
+title: Migrate and application from a cluster to another one
+teaser: Learn how to migrate an application from a cluster to another one doing filtering
+  and transformation.
+description: |-
+  Application migration on Kubernetes is today a hot topic. Indeed the Kubernetes Hosting market is bouncing
+  and the offer become huge. But to leverage this opportunity you must be able to migrate easily from a cluster
+  to another one. App migration should be a non-event. We'll see in this lab that this is
+  quite easy with Kasten.
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags: []
+owner: kasten
+developers:
+- michael@kasten.io
+private: true
+published: true
+checksum: "9631512937654557802"

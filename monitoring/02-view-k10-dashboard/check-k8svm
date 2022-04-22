@@ -1,0 +1,18 @@
+#!/bin/bash
+
+kubectl --namespace kasten-io get svc gateway-nodeport
+if [[ $? -ne 0 ]] ; then
+    fail-message "Unable to discover the NodePort service"
+    exit 1
+fi
+
+PORT=$(kubectl --namespace kasten-io get svc gateway-nodeport -o jsonpath="{.spec.ports[0].port}")
+NODEPORT=$(kubectl --namespace kasten-io get svc gateway-nodeport -o jsonpath="{.spec.ports[0].nodePort}")
+TYPE=$(kubectl --namespace kasten-io get svc gateway-nodeport -o jsonpath="{.spec.type}")
+
+if [[ ${PORT} -ne 8000 || ${NODEPORT} -ne 32000 || ${TYPE} -ne "NodePort" ]] ; then
+    fail-message "NodePort is not configured successfully"
+    exit 1
+fi
+
+exit 0

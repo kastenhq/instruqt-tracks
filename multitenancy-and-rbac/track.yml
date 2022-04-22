@@ -1,0 +1,25 @@
+slug: multitenancy-and-rbac
+id: nv75gzxteyaa
+type: track
+title: Multitenancy and RBAC
+teaser: Learn how to manage multitenancy in kasten using OIDC and kubernetes RBAC,
+  on a single cluster or in a multicluster situation
+description: |-
+  In order to allow kasten to be used by different users with different
+  capacity we need to implement multitenancy in Kasten, this can be done using an
+  identity provider and RBAC rules. In this track you're going to learn both. Multicluster is
+  a typical multitenancy use case, where you want to give different capacity to different user per cluster.
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags:
+- Kubernetes
+- RBAC
+- Multitenancy
+- Multicluster
+- Backup
+- Disaster Recovery
+owner: kasten
+developers:
+- michael@kasten.io
+private: true
+published: true
+checksum: "14305660467080509718"

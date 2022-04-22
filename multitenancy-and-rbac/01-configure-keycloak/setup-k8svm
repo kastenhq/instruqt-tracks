@@ -1,0 +1,26 @@
+#!/bin/bash
+set -euxo pipefail
+#
+# This is a sample setup script. Rename this file to setup-$CONTAINER
+# (where $container is the name of the container as defined in your config.yml),
+# and replace this content with your own script.
+#
+# This script will be run when you setup the challenge.
+#
+# Remember that the exit code is important. See the documentation
+# for more information.
+#
+
+cat <<EOF > license-secret.yaml
+apiVersion: v1
+data:
+  license: IyBsaWNlbnNlX2ZpbGUueWFtbApjdXN0b21lck5hbWU6IGluc3RydXF0LWxhYnMtcDMtMjAzMDA4MTIKZGF0ZUVuZDogJzIwMzAtMDgtMTJUMDA6MDA6MDAuMDAwWicKZGF0ZVN0YXJ0OiAnMjAyMS0wOC0xM1QwMDowMDowMC4wMDBaJwpmZWF0dXJlczogbnVsbAppZDogZTI2NzI3MjYtNzMxZS00YzczLWJlYWQtMGU5ZjhiNGExNmY4CnByb2R1Y3Q6IEsxMApyZXN0cmljdGlvbnM6CiAgbm9kZXM6ICczJwpzZXJ2aWNlQWNjb3VudEtleTogbnVsbAp2ZXJzaW9uOiB2MS4wLjAKcHJvbW90aW9uSUQ6ICJtdWx0aXRlbmFuY3ktbGFiIgpzaWduYXR1cmU6IGJkL2tOcUp0azlMeC9YR1FQejZLK3E3aEhyMzNyaFRJMkRFZm90M3ZZYnpyUFVxT0RjWVhVVGRGNEFSM3RVbHlmaHdYUjVUS0hSRU5lK0ZST2NvUTN6WXpkK2d5cDU1M2tPaEhldVV0K2NpR1hhWU5VSnQ5c1NQVzhNakJwN20wL0Z6aGUxM0VkVUpwUUNXMlpGbnRWcUl1MThzY1FJWmsydlEyKzlPZEk3WTVJOFhiVUU0VlhiRk9XNWRyNWFQK2tBaStJUEJPWFhhSVp2L0g0dVlOMVNLMDlYT3FKSDlFMVZiYm1ZTHU5dHA0czRGekFmYU5JQTd0R0Rja3Q1SGpKUEZlbmhzM3RQWnpyVUI4VHVPVzdlY3Y5WVN1KzMzdmpqNXI1RWxWMHpUM0tvQnlmcGdLK0o5SjY2R1p6ZVRFM1A5ajZ4SjEzYUdDcUJ2Z1hYUVdFQT09
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: k10-license-labs
+  namespace: kasten-io
+EOF
+
+exit 0
+

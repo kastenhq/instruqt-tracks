@@ -1,0 +1,23 @@
+#!/bin/bash
+
+if ! ls catalog-challenge.txt; then 
+    fail-message "catalog-challenge.txt can't be found"
+    exit 1
+fi 
+
+if ! grep "STOREMETADATA" catalog-challenge.txt; then
+    fail-message "the bucket name that hold the value of SCHEMAVERSION cant be found in catalog-challenge.txt"
+    exit 1
+fi
+
+if ! grep "PRIMARY" catalog-challenge.txt; then
+    fail-message "the bucket name that hold the values of the spec you backup in a namespace cant be found in catalog-challenge.txt"
+    exit 1
+fi
+
+if ! grep "/mnt/k10state/kasten-io/catalog/model-store.db" catalog-challenge.txt; then
+    fail-message "the absolute path of the catalog file in the catalog-svc container cant be found in catalog-challenge.txt"
+    exit 1
+fi
+
+exit 0

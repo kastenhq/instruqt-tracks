@@ -1,0 +1,13 @@
+#!/bin/bash
+set -euxo pipefail
+
+kubectl annotate statefulset mongo-mongodb kanister.kasten.io/blueprint- \
+      --namespace=mongodb
+
+helm upgrade k10 kasten/k10 -n kasten-io \
+  --set injectKanisterSidecar.enabled=true \
+  --set-string injectKanisterSidecar.objectSelector.matchLabels.component=db \
+  --set-string injectKanisterSidecar.namespaceSelector.matchLabels.k10/injectKanisterSidecar=true --wait
+
+kubectl label ns mongodb k10/injectKanisterSidecar=true
+kubectl label -n mongodb statefulset mongo-mongodb component=db

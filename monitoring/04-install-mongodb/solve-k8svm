@@ -1,0 +1,93 @@
+#!/bin/bash
+set -euxo pipefail
+
+helm repo add bitnami https://charts.bitnami.com/bitnami
+kubectl create namespace mongodb
+helm install mongo bitnami/mongodb --namespace mongodb \
+    --set architecture="replicaset" --set persistence.size=1Gi --wait
+
+# Create policy on mongodb namespace and launch two runactions.
+cat <<EOF | kubectl create -f -
+kind: Policy
+apiVersion: config.kio.kasten.io/v1alpha1
+metadata:
+  name: mongodb-backup
+  namespace: kasten-io  
+spec:
+  frequency: "@hourly"
+  retention:
+    hourly: 24
+    daily: 7
+    weekly: 4
+    monthly: 12
+    yearly: 7
+  selector:
+    matchExpressions:
+      - key: k10.kasten.io/appNamespace
+        operator: In
+        values:
+          - mongodb
+  actions:
+    - action: backup
+      backupParameters:
+        filters: {}
+        profile:
+          name: kasten-bucket
+          namespace: kasten-io
+    - action: export
+      exportParameters:
+        frequency: "@hourly"
+        profile:
+          name: kasten-bucket
+          namespace: kasten-io        
+        exportData:
+          enabled: true
+      retention: {}
+  createdBy: k10-admin
+EOF
+
+# Run it once 
+cat <<EOF | kubectl create -f -
+kind: RunAction
+apiVersion: actions.kio.kasten.io/v1alpha1
+metadata:
+  name: policy-run-mongodb-1
+  labels:
+    k10.kasten.io/doNotRetire: "true"
+    k10.kasten.io/policyName: mongodb-backup
+    k10.kasten.io/policyNamespace: kasten-io
+spec:
+  subject:
+    apiVersion: config.kio.kasten.io/v1alpha1
+    kind: Policy
+    name: mongodb-backup
+    namespace: kasten-io  
+EOF
+
+## wait for completion
+COUNTER=100
+SLEEP=5
+OBJECT="runaction/policy-run-mongodb-1"
+JSONPATH="{.status.state}"
+CONDITION="Complete"
+TOTAL=$(( COUNTER*SLEEP ))
+sleep 2
+until [ $COUNTER -lt 0 ]; do
+    REMAINING=$(( COUNTER*SLEEP ))
+    echo "Waiting for $OBJECT to be $CONDITION... ${REMAINING} seconds remaining"
+    if [[ $(kubectl get $OBJECT -o=jsonpath="$JSONPATH") != "$CONDITION" ]] ; then
+        echo "$OBJECT not yet $CONDITION, retrying in ${SLEEP} seconds"
+        COUNTER=$((COUNTER-1))
+        sleep $SLEEP        
+    else
+        echo "$OBJECT is $CONDITION"
+        break
+    fi    
+done
+
+if [ $COUNTER -lt 0 ]; then
+    echo "$OBJECT did not get $CONDITION under ${TOTAL} seconds"
+    exit 1
+fi
+
+exit 0

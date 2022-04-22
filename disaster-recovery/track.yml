@@ -1,0 +1,18 @@
+slug: disaster-recovery
+id: zqdiva1upay2
+type: track
+title: Disaster Recovery
+teaser: Learn how to recover from a complete disaster
+description: |-
+  Sometime the worst happens, and not only you can't access anymore to your cluster
+  but also you've lost all your snapshots, your configuration and sometime your entire datacenter.
+  In the eventuality of this event Kasten proposes a complete disaster recovery solution that will
+  help you survive this event.
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags: []
+owner: kasten
+developers:
+- michael@kasten.io
+private: true
+published: true
+checksum: "16835767225459050959"

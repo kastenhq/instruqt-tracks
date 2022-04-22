@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euxo pipefail
+
+kubectl apply -f mongodb-hooks.yaml --namespace kasten-io
+
+kubectl annotate statefulset --overwrite mongo-mongodb kanister.kasten.io/blueprint='mongo-hooks' \
+      --namespace=mongodb
+
+cat <<EOF > consistent-backup-challenge.txt
+03. Consistent backup is the same as CSI backup except data is flushed on the PVC for a consistent restart state 
+EOF

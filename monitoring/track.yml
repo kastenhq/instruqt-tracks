@@ -1,0 +1,26 @@
+slug: monitoring
+id: kucwfyoyzhu4
+type: track
+title: Monitoring in Kasten
+teaser: In this track you'll learn how to monitor Kasten, trigger alert when backup
+  fail or when the size of the catalog is reaching 80% of its capacity.
+description: |-
+  Kasten is built following best cloud native practices. Among them there is observability. An architecture is Obvervable when each component pusblish
+  metrics about his state or his actions. Then you can leverage tools like prometheus and grafana to get a view of your backup infrastructure and receive alerts
+  when something get wrong.
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags:
+- Kubernetes
+- Monitoring
+- Observability
+- Alerting
+- Metrics
+- Backup
+- Disaster recovery
+owner: kasten
+developers:
+- michael@kasten.io
+private: true
+published: true
+skipping_enabled: true
+checksum: "3881039968541899140"

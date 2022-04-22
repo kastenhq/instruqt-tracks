@@ -1,0 +1,29 @@
+slug: consistency
+id: ocnbboltawzn
+type: track
+title: Application consistency with Kasten
+teaser: Understand how you can implement consistency with Kasten
+description: |-
+  Kasten by default take the snapshot path to backup your stateful workload. It's the simplest and more
+  straigth forward approach to protect your data because your backup are crash consistent and at least you
+  export a copy of your data in an external storage.
+  ##
+  However being crash consistent does not mean being application consistent. For performance
+  reason databases keep in memory many datas and flush them to the disk at specific intervals. Hence
+  the state of the disks is not necessary the state of the database. Hopefully Kasten integrates with the
+  Kanister project to help you build consistent backup.
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags:
+- Kubernetes
+- Backup
+- Database
+- Consistency
+- Kanister
+- Blueprint
+owner: kasten
+developers:
+- michael@kasten.io
+private: true
+published: true
+skipping_enabled: true
+checksum: "8854546958686332349"

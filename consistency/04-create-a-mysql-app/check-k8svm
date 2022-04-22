@@ -1,0 +1,9 @@
+#!/bin/bash
+
+# Check if minio pod is healthy
+if [[ $(kubectl get pods --namespace=mysql -o json | jq -j '.items | .[] | .status | .containerStatuses | .[]? | .state.running != null or .state.terminated.reason == "Completed"') == *false* ]] ; then
+    fail-message "Mysql has not been installed or is not healthy"
+    exit 1
+fi
+
+exit 0

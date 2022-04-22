@@ -1,0 +1,26 @@
+slug: technical-architecture-v2
+id: gsyrxfbtgrwy
+type: track
+title: Kasten Technical Architecture
+teaser: Understand by exercicing it the technical architecture of Kasten
+description: |-
+  Kasten is built following best cloud native practices. In order to troubleshoot, evaluate scalability,
+  security and adaptability it's important to understand the internal architecture of Kasten.
+  To complete the big overview we'll check the different kinds of backup that Kasten offers and how they interact with
+  your infrastructure.
+  ###
+  This track will increase your troubleshoot skills and will make you able to answer any deep dive questions that you may meet within your teams or your customers.
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags:
+- Kubernetes
+- Architecture
+- Scalability
+- Security
+- Troubleshooting
+owner: kasten
+developers:
+- michael@kasten.io
+private: true
+published: true
+skipping_enabled: true
+checksum: "16714317026894301206"

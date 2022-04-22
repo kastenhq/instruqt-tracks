@@ -1,40 +1,48 @@
 #!/bin/bash
 
-# A VM image of 100GB was generated using the Ubuntu 20.04 LTS minimal
-# release and the following commands. This needs to be run as root because
-# instruqt launches terminals as root.
-
-# Docs on image creation -
-# https://cloud.google.com/compute/docs/images/create-delete-deprecate-private-images#console
-
-# The image needs to be granted the role roles/compute.imageUser for the
-# Instruqt service account (instruqt-track@instruqt-prod.iam.gserviceaccount.com)
-
-apt update
-apt -y install docker.io jq emacs vim bash-completion
-
-KIND_VERSION="v0.11.1"
-KUBECTL_VERSION="v1.20.1"
-HELM_VERSION="v3.7.0"
-
-# Install kind
-curl -Lo ./kind https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-$(uname)-amd64
-chmod +x ./kind
-mv ./kind /usr/local/bin
-
-# Install kubectl
-curl -LO https://storage.googleapis.com/kubernetes-release/release/${KUBECTL_VERSION}/bin/linux/amd64/kubectl
-chmod +x ./kubectl
-mv ./kubectl /usr/local/bin/kubectl
-echo "alias k=kubectl" >> /root/.bashrc
-
-# Install Helm 3
-curl -fsSL https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz | tar -zxvf - -C /usr/local/bin/ linux-amd64/helm --strip=1
+#
+# This is a sample setup script. Rename this file to setup-$CONTAINER
+# (where $container is the name of the container as defined in your config.yml),
+# and replace this content with your own script.
+#
+# This script will be run when you setup the challenge.
+#
+# Remember that the exit code is important. See the documentation
+# for more information.
+#
 
 
-# Download the base kind image
-docker pull kindest/node:v1.21.1
+cat <<EOF > license-secret.yaml
+apiVersion: v1
+data:
+  license: IyBsaWNlbnNlX2ZpbGUueWFtbApjdXN0b21lck5hbWU6IGluc3RydXF0LWxhYnMtcDMtMjAzMDA4MTIKZGF0ZUVuZDogJzIwMzAtMDgtMTJUMDA6MDA6MDAuMDAwWicKZGF0ZVN0YXJ0OiAnMjAyMS0wOC0xM1QwMDowMDowMC4wMDBaJwpmZWF0dXJlczogbnVsbAppZDogZTI2NzI3MjYtNzMxZS00YzczLWJlYWQtMGU5ZjhiNGExNmY4CnByb2R1Y3Q6IEsxMApyZXN0cmljdGlvbnM6CiAgbm9kZXM6ICczJwpzZXJ2aWNlQWNjb3VudEtleTogbnVsbAp2ZXJzaW9uOiB2MS4wLjAKcHJvbW90aW9uSUQ6ICJtdWx0aXRlbmFuY3ktbGFiIgpzaWduYXR1cmU6IGJkL2tOcUp0azlMeC9YR1FQejZLK3E3aEhyMzNyaFRJMkRFZm90M3ZZYnpyUFVxT0RjWVhVVGRGNEFSM3RVbHlmaHdYUjVUS0hSRU5lK0ZST2NvUTN6WXpkK2d5cDU1M2tPaEhldVV0K2NpR1hhWU5VSnQ5c1NQVzhNakJwN20wL0Z6aGUxM0VkVUpwUUNXMlpGbnRWcUl1MThzY1FJWmsydlEyKzlPZEk3WTVJOFhiVUU0VlhiRk9XNWRyNWFQK2tBaStJUEJPWFhhSVp2L0g0dVlOMVNLMDlYT3FKSDlFMVZiYm1ZTHU5dHA0czRGekFmYU5JQTd0R0Rja3Q1SGpKUEZlbmhzM3RQWnpyVUI4VHVPVzdlY3Y5WVN1KzMzdmpqNXI1RWxWMHpUM0tvQnlmcGdLK0o5SjY2R1p6ZVRFM1A5ajZ4SjEzYUdDcUJ2Z1hYUVdFQT09
+kind: Secret
+metadata:
+  creationTimestamp: null
+  name: k10-license-labs
+  namespace: kasten-io
+EOF
 
+# Wait for Kubernetes to be up and delete it to recreate it otherwise the default namespace will 
+# have the same uid as the kubernetes on k8svm
+# Wait for Kubernetes to be up
+JSONPATH='{range .items[*]}{@.metadata.name}:{range @.status.conditions[*]}{@.type}={@.status};{end}{end}'
+COUNTER=60
+until [ $COUNTER -lt 0 ]; do
+    echo "Waiting for Kubernetes to be ready... ${COUNTER}"
+    kubectl get nodes -o jsonpath="$JSONPATH" | grep "Ready=True"
+    if [[ $? -eq 0 ]] ; then
+        kind delete cluster --name k10-demo
+        break
+    fi
+    docker ps
+    let COUNTER-=1
+    sleep 5
+done
+
+kind delete cluster --name k10-demo
+
+# recreate it 
 cat > kind_config.yaml << EOF
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -127,11 +135,5 @@ reclaimPolicy: Delete
 volumeBindingMode: Immediate
 EOF
 
+exit 0
 
-# install kubectl completion and alias 
-sudo apt-get install bash-completion
-
-echo "alias k=kubectl" >> /root/.bashrc
-echo "source /usr/share/bash-completion/bash_completion" >> /root/.bashrc
-echo "source <(kubectl completion bash)" >> /root/.bashrc
-echo "complete -F __start_kubectl k" >> /root/.bashrc

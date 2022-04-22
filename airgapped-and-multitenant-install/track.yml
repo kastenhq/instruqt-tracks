@@ -1,0 +1,16 @@
+slug: airgapped-and-multitenant-install
+id: feyf4bo5t2iz
+type: track
+title: Airgapped and Multitenant install
+teaser: Validate that you are now able to handle a complex installation involving
+  multitenancy and airgapped environment.
+description: In this track you're going to combine you skills to perform and troubleshoot
+  a complex install.
+icon: https://docs.kasten.io/_static/kasten-logo-vertical.png
+tags: []
+owner: kasten
+developers:
+- michael@kasten.io
+private: true
+published: true
+checksum: "10400280972485117771"

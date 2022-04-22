@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# Check if K10 is healthy
+if [[ $(kubectl get pods --namespace=kasten-io -o json | jq -j '.items | .[] | .status | .containerStatuses | .[]? | .state.running != null or .state.terminated.reason == "Completed"') == *false* ]] ; then
+    fail-message "K10 has not been installed or is not healthy"
+    exit 1
+fi
+
+# Check for annotations
+missing_annotation=$(kubectl get volumesnapshotclass csi-hostpath-snapclass -o yaml | grep 'k10.kasten.io/is-snapshot-class: "true"' > /dev/null 2>&1 ; echo $?)
+
+if [ "$missing_annotation" -eq 1 ]; then
+    fail-message "Missing annotation"
+    exit 1
+fi
+
+exit 0

@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Check if minio pod is healthy
+if [[ $(kubectl get pods --namespace=minio -o json | jq -j '.items | .[] | .status | .containerStatuses | .[]? | .state.running != null or .state.terminated.reason == "Completed"') == *false* ]] ; then
+    fail-message "Minio has not been installed or is not healthy"
+    exit 1
+fi
+
+# check if kasten profile has been created 
+if [[ ! $(kubectl get profile --namespace=kasten-io kasten-bucket) ]] ; then 
+    fail-message "kasten-bucket profile has not been created"
+fi 
+
+exit 0

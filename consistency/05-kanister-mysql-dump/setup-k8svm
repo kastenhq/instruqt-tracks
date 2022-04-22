@@ -1,0 +1,83 @@
+#!/bin/bash
+#
+# This is a sample setup script. Rename this file to setup-$CONTAINER
+# (where $container is the name of the container as defined in your config.yml),
+# and replace this content with your own script.
+#
+# This script will be run when you setup the challenge.
+#
+# Remember that the exit code is important. See the documentation
+# for more information.
+#
+
+cat <<EOF > mysql-blueprint.yaml
+apiVersion: cr.kanister.io/v1alpha1
+kind: Blueprint
+metadata:
+  name: mysql-blueprint
+  namespace: kasten-io
+actions:
+  backup:
+    outputArtifacts:
+      mysqlCloudDump:
+        keyValue:
+          s3path: "{{ .Phases.dumpToStore.Output.s3path }}"
+    phases:
+    - func: KubeTask
+      name: dumpToStore
+      args:
+        image: ghcr.io/kanisterio/mysql-sidecar:0.74.0
+        namespace: "{{ .StatefulSet.Namespace }}"
+        command:
+        - bash
+        - -o
+        - errexit
+        - -o
+        - pipefail
+        - -c
+        - |
+          s3_path="/mysql-backups/{{ .StatefulSet.Namespace }}/{{ toDate "2006-01-02T15:04:05.999999999Z07:00" .Time  | date "2006-01-02T15-04-05" }}/dump.sql.gz"
+          mysqldump --column-statistics=0 -u root --password=ultrasecurepassword -h mysql --single-transaction --all-databases | gzip - | kando location push --profile '{{ toJson .Profile }}' --path \${s3_path} -
+          kando output s3path \${s3_path}
+  restore:
+    inputArtifactNames:
+    - mysqlCloudDump
+    phases:
+    - func: KubeTask
+      name: restoreFromStore
+      args:
+        image: ghcr.io/kanisterio/mysql-sidecar:0.74.0
+        namespace: "{{ .StatefulSet.Namespace }}"
+        command:
+        - bash
+        - -o
+        - errexit
+        - -o
+        - pipefail
+        - -c
+        - |
+          s3_path="{{ .ArtifactsIn.mysqlCloudDump.KeyValue.s3path }}"
+          kando location pull --profile '{{ toJson .Profile }}' --path \${s3_path} - | gunzip | mysql -u root --password=ultrasecurepassword -h mysql
+  delete:
+    inputArtifactNames:
+    - mysqlCloudDump
+    phases:
+    - func: KubeTask
+      name: deleteFromStore
+      args:
+        image: ghcr.io/kanisterio/mysql-sidecar:0.74.0
+        # Notice that we don't use anymore "{{ .StatefulSet.Namespace }}"
+        # This is because deletion of a backup can happen even if no
+        # workload are deployed
+        namespace: "{{ .Namespace.Name }}"
+        command:
+        - bash
+        - -o
+        - errexit
+        - -o
+        - pipefail
+        - -c
+        - |
+          s3_path="{{ .ArtifactsIn.mysqlCloudDump.KeyValue.s3path }}"
+          kando location delete --profile '{{ toJson .Profile }}' --path \${s3_path}
+EOF

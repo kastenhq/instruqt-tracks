@@ -1,0 +1,89 @@
+#!/bin/bash
+#
+# This is a sample setup script. Rename this file to setup-$CONTAINER
+# (where $container is the name of the container as defined in your config.yml),
+# and replace this content with your own script.
+#
+# This script will be run when you setup the challenge.
+#
+# Remember that the exit code is important. See the documentation
+# for more information.
+#
+
+cat <<EOF > mysql-blueprint-v2.yaml
+apiVersion: cr.kanister.io/v1alpha1
+kind: Blueprint
+metadata:
+  name: mysql-blueprint-v2
+  namespace: kasten-io
+actions:
+  backup:
+    outputArtifacts:
+      mysqlBackup:
+        # Capture the kopia snapshot information for subsequent actions
+        # The information includes the kopia snapshot ID which is essential for restore and delete to succeed
+        # \`kopiaOutput\` is the name provided to kando using \`--output-name\` flag
+        kopiaSnapshot: "{{ .Phases.dumpToStore.Output.kopiaOutput }}"
+    phases:
+    - func: KubeTask
+      name: dumpToStore
+      args:
+        image: ghcr.io/kanisterio/mysql-sidecar:0.73.0
+        namespace: "{{ .StatefulSet.Namespace }}"
+        command:
+        - bash
+        - -o
+        - errexit
+        - -o
+        - pipefail
+        - -c
+        - |
+          dump_cmd="mysqldump --column-statistics=0 -u root --password=ultrasecurepassword -h mysql --single-transaction --all-databases"
+          \${dump_cmd} | kando location push --profile '{{ toJson .Profile }}' --path dump.sql --output-name "kopiaOutput" -
+  restore:
+    inputArtifactNames:
+    # inputArtifact consume outputArtifact produced in the backup action
+    # Use the \`--kopia-snapshot\` flag in kando to pass in \`ArtifactsIn.mysqlBackup.KopiaSnapshot\`
+    - mysqlBackup
+    phases:
+    - func: KubeTask
+      name: restoreFromStore
+      args:
+        image: ghcr.io/kanisterio/mysql-sidecar:0.73.0
+        namespace: "{{ .StatefulSet.Namespace }}"
+        command:
+        - bash
+        - -o
+        - errexit
+        - -o
+        - pipefail
+        - -c
+        - |
+          kopia_snap='{{ .ArtifactsIn.mysqlBackup.KopiaSnapshot }}'
+          restore_cmd="mysql -u root --password=ultrasecurepassword -h mysql"
+          kando location pull --profile '{{ toJson .Profile }}' --path dump.sql --kopia-snapshot "\${kopia_snap}" - | \${restore_cmd}
+  delete:
+    inputArtifactNames:
+    # inputArtifact consume outputArtifact produced in the backup action
+    # Use the \`--kopia-snapshot\` flag in kando to pass in \`ArtifactsIn.mysqlBackup.KopiaSnapshot\`
+    - mysqlBackup
+    phases:
+    - func: KubeTask
+      name: deleteFromStore
+      args:
+        image: ghcr.io/kanisterio/mysql-sidecar:0.73.0
+        # Notice that we don't use anymore "{{ .StatefulSet.Namespace }}"
+        # This is because deletion of a backup can happen even if no
+        # workload are deployed
+        namespace: "{{ .Namespace.Name }}"
+        command:
+        - bash
+        - -o
+        - errexit
+        - -o
+        - pipefail
+        - -c
+        - |
+          kopia_snap='{{ .ArtifactsIn.mysqlBackup.KopiaSnapshot }}'
+          kando location delete --profile '{{ toJson .Profile }}' --path dump.sql --kopia-snapshot "\${kopia_snap}"
+EOF

@@ -1,0 +1,20 @@
+#!/bin/bash
+
+# check if mongodb is install
+
+if [[ ! $(helm list -n mongodb | grep mongo) ]]; then 
+    fail-message "Mongodb has not been installed or is not healthy"
+    exit 1
+fi 
+
+if [[ ! $(kubectl get backupaction -n mongodb) ]] ; then 
+    fail-message "mongodb has no backupaction, did you run the policy ?"
+    exit 1
+fi
+
+if [[ ! $(kubectl get exportaction -n mongodb) ]] ; then 
+    fail-message "mongodb has no exportaction, did you define an export location on the policy ?"
+    exit 1
+fi
+
+exit 0

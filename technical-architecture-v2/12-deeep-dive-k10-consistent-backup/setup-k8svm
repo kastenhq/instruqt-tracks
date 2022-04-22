@@ -1,0 +1,81 @@
+#!/bin/bash
+#
+# This is a sample setup script. Rename this file to setup-$CONTAINER
+# (where $container is the name of the container as defined in your config.yml),
+# and replace this content with your own script.
+#
+# This script will be run when you setup the challenge.
+#
+# Remember that the exit code is important. See the documentation
+# for more information.
+#
+
+cat <<EOF > consistent-backup-challenge.txt
+01. In consistent backup we only check data integrity before backing up 
+02. Consistent backup does not use snapshot instead it creates dump and export it to the target location
+03. Consistent backup is the same as CSI backup except data is flushed on the PVC for a consistent restart state 
+04. Consistent backup is the same as CSI backup except a dump is pushed on the PVC for a consistent restart state 
+05. Consistent backup is the same as logical backup but beside the dump we also backup the PVC
+EOF
+
+cat <<EOF > consistent-backup-challenge-readonly.txt
+01. In consistent backup we only check data integrity before backing up 
+02. Consistent backup does not use snapshot instead it creates dump and export it to the target location
+03. Consistent backup is the same as CSI backup except data is flushed on the PVC for a consistent restart state 
+04. Consistent backup is the same as CSI backup except a dump is pushed on the PVC for a consistent restart state 
+05. Consistent backup is the same as logical backup but beside the dump we also backup the PVC
+EOF
+
+cat <<EOF > mongodb-hooks.yaml
+apiVersion: cr.kanister.io/v1alpha1
+kind: Blueprint
+metadata:
+  name: mongo-hooks
+actions:
+  backupPrehook:
+    phases:
+    - func: KubeExecAll
+      name: lockMongo
+      objects:
+        mongoDbSecret:
+          kind: Secret
+          name: '{{ .StatefulSet.Name }}'
+          namespace: "{{ .StatefulSet.Namespace }}"        
+      args:
+        namespace: "{{ .StatefulSet.Namespace }}"
+        pods: "{{ range .StatefulSet.Pods }} {{.}}{{end}}"
+        containers: "mongodb"
+        command:
+        - bash
+        - -o
+        - errexit
+        - -o
+        - pipefail
+        - -c
+        - |
+          export MONGODB_ROOT_PASSWORD='{{ index .Phases.lockMongo.Secrets.mongoDbSecret.Data "mongodb-root-password" | toString }}'
+          mongo --authenticationDatabase admin -u root -p "\$MONGODB_ROOT_PASSWORD" --eval="db.fsyncLock()"
+  backupPosthook:
+    phases:
+    - func: KubeExecAll
+      name: unlockMongo
+      objects:
+        mongoDbSecret:
+          kind: Secret
+          name: '{{ .StatefulSet.Name }}'
+          namespace: "{{ .StatefulSet.Namespace }}" 
+      args:
+        namespace: "{{ .StatefulSet.Namespace }}"
+        pods: "{{ range .StatefulSet.Pods }} {{.}}{{end}}"
+        containers: "mongodb"
+        command:
+        - bash
+        - -o
+        - errexit
+        - -o
+        - pipefail
+        - -c
+        - |
+          export MONGODB_ROOT_PASSWORD='{{ index .Phases.unlockMongo.Secrets.mongoDbSecret.Data "mongodb-root-password" | toString }}'
+          mongo --authenticationDatabase admin -u root -p "\$MONGODB_ROOT_PASSWORD" --eval="db.fsyncUnlock()"
+EOF

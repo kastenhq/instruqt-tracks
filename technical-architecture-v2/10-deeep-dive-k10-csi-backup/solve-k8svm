@@ -1,0 +1,8 @@
+#!/bin/bash
+set -euxo pipefail
+
+cat <<EOF > csi-backup-challenge.txt
+02. The snapshot created in mongodb are keeped for local restore but deleted by the local retention policy
+03. PVC created in kasten-io during the execution of the backup are immediatly deleted once backup is finished 
+05. PVC created in kasten-io during the execution of the backup are cloned from the snapshot and used by the datamover
+EOF

@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euxo pipefail
+
+curl https://raw.githubusercontent.com/kanisterio/kanister/0.72.0/examples/stable/mongodb/blueprint-v2/mongo-blueprint.yaml > mongo-blueprint.yaml
+kubectl apply -f mongo-blueprint.yaml --namespace kasten-io
+
+kubectl annotate statefulset mongo-mongodb kanister.kasten.io/blueprint='mongodb-blueprint' \
+      --namespace=mongodb
+
+cat <<EOF > logical-backup-challenge.txt
+01. With logical backup snapshot are not taken 
+03. With logical backup snapshot are not taken but replaced by the kanister backup action
+05. With logical backup snapshot are not sent to the location profile but the logical dump is sent instead
+EOF

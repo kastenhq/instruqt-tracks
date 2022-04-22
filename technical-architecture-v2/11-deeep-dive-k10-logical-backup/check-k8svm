@@ -1,0 +1,25 @@
+#!/bin/bash
+
+CHALLENGE_FILE="logical-backup-challenge.txt"
+GOOD_ANS=( "01" "03" "05" )
+BAD_ANS=( "02" "04")
+
+for good in ${GOOD_ANS[@]} 
+do 
+    grep $good $CHALLENGE_FILE >/dev/null 2>&1
+    if [[ $? -ne 0 ]]; then
+        fail-message "An Accurate sentence is missing in $CHALLENGE_FILE"
+        exit 1
+    fi
+done  
+
+for bad in ${BAD_ANS[@]}
+do 
+    grep $bad $CHALLENGE_FILE >/dev/null 2>&1
+    if [[ $? -eq 0 ]]; then
+        fail-message "An Inacurate sentence is in $CHALLENGE_FILE"
+        exit 1
+    fi
+done 
+
+exit 0
