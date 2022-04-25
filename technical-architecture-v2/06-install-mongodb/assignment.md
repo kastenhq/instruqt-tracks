@@ -64,17 +64,6 @@ When all seems good you can exit
 exit
 ```
 
-# Deletion and restoration of the workloads
-
-Exercice a restoration by deleting first all the content of the namespace
-
-```
-helm uninstall -n mongodb mongo
-kubectl delete pvc -n mongodb --all
-```
-
-Use Kasten to restore and check all data in the log collection is here.
-
 # Create a policy with the export location profile minio.
 
 Create an hourly policy on the mongodb namespace with export to kasten-bucket location profile.
@@ -95,4 +84,15 @@ watch kubectl get volumesnapshot,pvc -n kasten-io
 - To follow up the snap process
 ```
 kubectl logs -c csi-snapshotter csi-hostpathplugin-0
-````
+```
+
+# Deletion and restoration of the workloads
+
+Exercice a restoration by deleting first all the content of the namespace
+
+```
+helm uninstall -n mongodb mongo
+kubectl delete pvc -n mongodb --all
+```
+
+Use Kasten to restore and check all data in the log collection is here.
