@@ -1,6 +1,6 @@
 version: "2"
 virtualmachines:
 - name: k8svm
-  image: k10-gke-testdrive-180621/instruqt-k8s-testdrive-08-23-2021
+  image: k10-gke-testdrive-180621/instruqt-k8s-testdrive-02-2022-v2
   shell: /bin/bash
   machine_type: n1-standard-4
